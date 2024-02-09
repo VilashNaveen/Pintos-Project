@@ -1,0 +1,27 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (exec-bound) begin
+  (args) begin
+  (args) argc = 3
+  (args) argv[0] = 'child-args'
+  (args) argv[1] = 'arg1'
+  (args) argv[2] = 'arg2'
+  (args) argv[3] = null
+  (args) end
+  child-args: exit(0)
+  (exec-bound) end
+  exec-bound: exit(0)
+Differences in `diff -u' format:
+  (exec-bound) begin
+- (args) begin
+- (args) argc = 3
+- (args) argv[0] = 'child-args'
+- (args) argv[1] = 'arg1'
+- (args) argv[2] = 'arg2'
+- (args) argv[3] = null
+- (args) end
+- child-args: exit(0)
+  (exec-bound) end
+  exec-bound: exit(0)

@@ -1,0 +1,381 @@
+		     +--------------------------+
+       	       	     |	   CS2043      		|
+		     | PROJECT 2: USER PROGRAMS	|
+		     | 	   DESIGN DOCUMENT     	|
+		     +--------------------------+
+
+---- GROUP ----
+
+>> Fill in the names and email addresses of your group members.
+
+200405B - Pasindu Muthumala - pasindumuthumala.20@cse.mrt.ac.lk
+200708G - Ravindu Wickramage - ravinduw.20@cse.mrt.ac.lk 
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+        https://oslab.kaist.ac.kr/pintosslides/
+	https://www.youtube.com/watch?v=sBFJwVeAwEk
+	https://www.youtube.com/watch?v=OE79vNZp1KI
+	https://www.cs.jhu.edu/~huang/cs318/fall21/project/project2.html
+
+			   ARGUMENT PASSING
+			   ================
+
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+        char ** arr = (char **)(malloc(sizeof(char *) * len));
+			//dynamic memory to store the input 
+
+		char * token_pointer  
+			// Token
+
+		tid_t tid;
+			//id of the thread
+
+		char * save_pointer
+			// Pointer to next token
+
+		char *file_name_copy;
+			//store a copy of the file
+
+		static bool setup_stack (void **esp, char *init_name) 
+			// change to take the filename
+
+		int argc
+			// number of arguments
+
+
+---- ALGORITHMS ----
+
+>> A2: Briefly describe how you implemented argument parsing.  How do
+>> you arrange for the elements of argv[] to be in the right order?
+>> How do you avoid overflowing the stack page?
+
+		To split the input, we used strtok_r, and to start the thread, we assigned the filename to a token. 
+		The setup_stack() function should then be used to move the separated strings into a stack after splitting 
+		the initial input into a string array in reverse order. We initially allocated memory using malloc and 
+		tested in a loop to see if the size was adequate because we didn't know the actual size of the arguments. 
+		If not, we increased the array by reallocating a space twice as large as its initial size to support 
+		more arguments.
+		
+
+---- RATIONALE ----
+
+>> A3: Why does Pintos implement strtok_r() but not strtok()?
+                The strtok r function is thread-safe because it avoids race situations by requiring the position of the 
+                next token. Because it can tokenize, this method can also be used in nested loops.
+
+
+>> A4: In Pintos, the kernel separates commands into a executable name
+>> and arguments.  In Unix-like systems, the shell does this
+>> separation.  Identify at least two advantages of the Unix approach.
+
+		Flexibility: 
+		TIn Unix-like systems, the shell offers a high degree of freedom in terms of command parsing and makes 
+		it simple to build complicated commands and pipelines.
+
+		Portability: 
+		Programs and scripts can be easily portable across many Unix-like platforms because to the shell's consistent 
+		and portable command parsing and execution interface. This lessens the requirement for platform-specific code 
+		and contributes to the user interface's consistency.
+		
+		
+
+			     SYSTEM CALLS
+			     ============
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+		thread.h - 
+		
+			struct file* executable;    
+				// check whether the file is executable.
+				
+			struct list file_name_list;      
+				// list of files cnnsidered.
+
+			struct list child_process_list;     
+				// list of child processes.
+
+			struct list lock_list;      
+				// to hold locks holded by the threads.
+
+			int fd;                     
+				// file descriptor.
+
+
+			tid_t parent;               
+				// parent id.
+
+			struct child_process* child_pr;   
+				// pointer to the child process.
+				
+		
+		syscall.c - 
+		
+			void close_file(int file_descriptor)
+				// Function to close a file given a file descriptor
+			
+			int get_page(const void *vaddr);
+				/* This function retrieves the page containing the virtual address provided as an argument
+				using the pagedir_get_page function. If the page is not accessible, the function exits
+				with a system error status.*/
+			
+			void children_remove(void);
+				/* Remove all child processes */
+			
+			struct file *get_file(int filedes);
+				/* Returns the file associated with the given file descriptor */
+			
+			struct child_process *find_child(int pid);
+				/* Find a child process with given PID */
+
+			int add_file(struct file *file_name);
+				/* Adds a file to the current thread's file list
+				   Returns the file descriptor if successful, SYS_ERROR otherwise */
+							
+			bool create(const char *file_name, unsigned starting_size);
+				/* Creates a file with the given name and initial size */
+			
+			bool remove(const char *file_name);
+				/* Removes a file with the given file name
+   				Returns true if successful, false otherwise */
+			
+			int open(const char *file_name);
+				/* Opens a file with the given file name
+   				Returns the file descriptor if successful, SYS_ERROR otherwise */
+			
+			int read(int filedes, void *buffer, unsigned length);
+				// read function implementation
+			
+			int write(int filedes, const void *buffer, unsigned byte_size);
+				// write function implementation
+			
+			void seek(int filedes, unsigned new_position);
+				/* function to change the position of the file pointer */
+			
+			void pointer_validator(const void *vaddr);
+				/* This function validates the virtual address provided as an argument. If the address
+				is not within the user virtual address space or is not a user virtual address,
+				the function exits with a system error status.
+				*/
+			
+			void buffer_validator(const void *buf, unsigned byte_size);
+				/* This function validates a buffer located at the virtual address provided as an argument.
+				The function uses the pointer_validator function to ensure that each byte in the buffer
+				is accessible.
+				*/
+			
+			void string_validator(const void *str);
+				/* This function validates the string located at the virtual address provided as an argument.
+				The function uses the get_page function to ensure that the pages containing each character of
+				the string are accessible. If any page is not accessible, the function exits with a system
+				error status.
+				*/
+
+			void close_file(int file_descriptor);
+				// Function to close a file given a file descriptor
+			
+			void exit(int status);
+				/* Exits the current thread with the given status */
+
+			
+		syscall.h -
+
+			struct lock fs_lock;
+				// lock the critical section.
+
+			
+			struct process_file {
+			struct file *file;
+			int fd;
+			struct list_elem elem;
+			};
+				// Structure to store the process file information
+
+
+			
+			struct child_process {
+			int pid, load_status, wait, exit, status;
+			struct semaphore load_semaphore, exit_sema;
+			struct list_elem elem;
+			};
+				// Structure to store the child process information
+				
+
+
+
+>> B2: Describe how file descriptors are associated with open files.
+>> Are file descriptors unique within the entire OS or just within a
+>> single process?
+
+		File descriptors are used to describe open files and are specific to a particular process. 
+		When a process opens a file, the operating system assigns a unique file descriptor to each file. 
+		The process can read and write data to open files using the file descriptor, which acts as a 
+		reference to the open file. However, file descriptors are not a feature of just one operating system. 
+		Various processes may use different file descriptors for the same open file. The file descriptor 
+		for each process is translated by the operating system to the relevant open file. A unique collection 
+		of file descriptors is maintained by each process.
+		
+
+---- ALGORITHMS ----
+
+>> B3: Describe your code for reading and writing user data from the
+>> kernel.
+
+		First, we used the pointer_validator() method to confirm that the stack pointer was valid. If the stack 
+		reference is valid, we proceeded to figure out whether a read-only or write-only system call needs to be made. 
+		Then, we gather each and every argument required for the system call. We employed the buffer_validator() 
+		technique to verify that the buffer is valid. Finally, we either perform the read() or write() function 
+		depending on the kind of system call.
+
+
+>> B4: Suppose a system call causes a full page (4,096 bytes) of data
+>> to be copied from user space into the kernel.  What is the least
+>> and the greatest possible number of inspections of the page table
+>> (e.g. calls to pagedir_get_page()) that might result?  What about
+>> for a system call that only copies 2 bytes of data?  Is there room
+>> for improvement in these numbers, and how much?
+
+		As the entire page would need to be mapped from user space to kernel space in order to complete t
+		he copy, the least amount of page table inspections required for a system call that copies a full 
+		page of data would be 1. If the page is already in memory and does not need to be faulted in, the 
+		maximum number of inspections could alternatively be 1.
+
+		The least number of inspections would still be 1 for a system call that just copies 2 bytes of data 
+		because the entire page that the data is stored in would need to be mapped. The highest value would 
+		also be 1, since the page would already be in memory in that scenario.
+
+		These figures may be improved since methods like demand paging and lazy page allocation can be u
+		tilized to minimize the number of page table inspections required. The precise improvement would, 
+		however, depend on the implementation's details and the workload being carried out.
+
+>> B5: Briefly describe your implementation of the "wait" system call
+>> and how it interacts with process termination.
+
+		The system call "wait" calls the process_wait, which uses a while loop to await for child processes 
+		to exit. We used the child process struct to acquire the child process after using the child id to 
+		locate the thread from the child_process_list. If it was terminated by a kernel function, SYS_ERROR will be 
+		returned (-1). If the TID is invalid, not a child of the calling process, or if process wait() has 
+		already been successfully called for the supplied TID, the function will return SYS_ERROR(-1) without 
+		waiting.
+
+
+
+>> B6: Any access to user program memory at a user-specified address
+>> can fail due to a bad pointer value.  Such accesses must cause the
+>> process to be terminated.  System calls are fraught with such
+>> accesses, e.g. a "write" system call requires reading the system
+>> call number from the user stack, then each of the call's three
+>> arguments, then an arbitrary amount of user memory, and any of
+>> these can fail at any point.  This poses a design and
+>> error-handling problem: how do you best avoid obscuring the primary
+>> function of code in a morass of error-handling?  Furthermore, when
+>> an error is detected, how do you ensure that all temporarily
+>> allocated resources (locks, buffers, etc.) are freed?  In a few
+>> paragraphs, describe the strategy or strategies you adopted for
+>> managing these issues.  Give an example.
+
+		 We modified the page_fault function of the file 'exception.c'. 
+		 If due to any reason a page fault occured,the page_fault function calls exit(-1)
+
+
+
+---- SYNCHRONIZATION ----
+
+>> B7: The "exec" system call returns -1 if loading the new executable
+>> fails, so it cannot return before the new executable has completed
+>> loading.  How does your code ensure this?  How is the load
+>> success/failure status passed back to the thread that calls "exec"?
+
+		The "exec" system call returns the new program's process id if it is successful and -1 if it 
+		cannot load the program. The child process struct is used to retain the status of the load to 
+		make sure that it is known before the call to "exec" returns. The process terminates with an 
+		exit code of -1 if the process id is not loaded after checking the status.
+
+
+
+>> B8: Consider parent process P with child process C.  How do you
+>> ensure proper synchronization and avoid race conditions when P
+>> calls wait(C) before C exits?  After C exits?  How do you ensure
+>> that all resources are freed in each case?  How about when P
+>> terminates without waiting, before C exits?  After C exits?  Are
+>> there any special cases?
+
+		When process P is awaiting child process C, semaphores will be used to maintain appropriate 
+		synchronization and prevent race situations. Until the child process signals it, the parent 
+		process will halt on a semaphore. This makes sure that the parent will wait to go on until 
+		the child process has finished and left. P will utilize the exit() function to kill all of its 
+		offspring, including C, if it exits before C does. By doing this, all resources are guaranteed 
+		to be available for both the parent and child processes. The child process will unlock the 
+		semaphore and release its resources if C exits before P does. C will already have been unlocked 
+		and its resources released if P quits before C does.
+
+
+---- RATIONALE ----
+
+>> B9: Why did you choose to implement access to user memory from the
+>> kernel in the way that you did?
+
+		In order to assure security and avoid system crashes or problems, We decided to design access to 
+		user memory in this manner. By determining if a pointer is valid or not, the function decomposition 
+		enables efficient error catching. The exit(-1) function will then be triggered to stop additional 
+		harm to the system if the page fault interrupt handler detects an invalid pointer. 
+		The system's stability and security are given top priority in this design decision.
+
+
+
+>> B10: What advantages or disadvantages can you see to your design
+>> for file descriptors?
+
+		advantages:
+			It eleminates the possibility of occuring a race conditions. 
+			We have used semaphores for mutual exclusion.
+			
+		disadvantages: 
+			We have not implemented sychronization.
+			Some of the test cases fail.
+
+>> B11: The default tid_t to pid_t mapping is the identity mapping.
+>> If you changed it, what advantages are there to your approach?
+
+		We did not changed it.
+        
+
+			   SURVEY QUESTIONS
+			   ================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters or the remaining projects?
+
+>> Any other comments?
